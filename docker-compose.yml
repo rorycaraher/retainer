@@ -1,0 +1,14 @@
+services:
+  retainer:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    # No published port: this expects a reverse proxy (e.g. Caddy) in the
+    # same compose network, reaching this container via the service name
+    # `retainer:8070` — see docs/deploy/Caddyfile.example. For standalone
+    # use without a proxy in front, uncomment:
+    # ports:
+    #   - "127.0.0.1:8070:8070"

@@ -1,0 +1,14 @@
+.git
+data
+*.db
+*.db-wal
+*.db-shm
+
+server/retainer
+
+web/node_modules
+web/dist
+
+docs
+CONTEXT.md
+IDEAS.md

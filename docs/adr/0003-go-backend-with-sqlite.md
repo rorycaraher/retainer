@@ -1,0 +1,3 @@
+# Go backend with SQLite
+
+The backend is written in Go, storing data in SQLite rather than Postgres, deployed as a single Docker container behind an existing Caddy reverse proxy. This is a deliberate choice for a single-user, personal-scale, self-hosted app: SQLite's entire database is one file (trivial backup via `cp`, no separate DB server process to run and patch), and Go compiles to a single static binary with a small memory footprint, matching a "minimal moving parts" self-hosting philosophy on modest hardware. This does mean the backend (Go) and frontend (Svelte/TypeScript) don't share a language or type definitions across the API boundary — accepted as a worthwhile trade against the operational simplicity, and driven by the author's existing Go proficiency.

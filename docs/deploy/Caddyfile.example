@@ -1,0 +1,7 @@
+# For the Docker Compose deploy, with Caddy in the same compose network as
+# the retainer service (reachable by service name). If Caddy runs outside
+# that network, use Caddyfile.bare-metal.example instead (reverse_proxy
+# 127.0.0.1:8070, and uncomment the ports: line in docker-compose.yml).
+notes.example.com {
+    reverse_proxy retainer:8070
+}

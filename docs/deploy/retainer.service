@@ -1,0 +1,24 @@
+[Unit]
+Description=Retainer notes server
+After=network.target
+
+[Service]
+Type=simple
+User=retainer
+Group=retainer
+WorkingDirectory=/opt/retainer
+Environment=DB_PATH=/opt/retainer/data/retainer.db
+Environment=STATIC_DIR=/opt/retainer/dist
+Environment=ADDR=127.0.0.1:8070
+ExecStart=/opt/retainer/retainer
+Restart=on-failure
+RestartSec=2
+
+# Sandboxing: the app never needs to write anywhere but its own data dir.
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/retainer/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

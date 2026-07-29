@@ -1,0 +1,3 @@
+# Native Kotlin and Swift, no cross-platform mobile framework
+
+Despite wanting both Android and iOS clients, the mobile apps are built natively per platform — Kotlin/Jetpack Compose for Android, Swift for iOS — rather than a shared cross-platform framework like React Native or Flutter. This deliberately forgoes code-sharing between the two mobile clients (and rules out sharing sync logic with the Svelte web app, which a JS-based framework like React Native would have allowed): this project is explicitly a learning exercise, the author strongly prefers native platform tooling over React specifically, and duplicating the HLC merge logic per-platform is an accepted cost rather than a problem to engineer away.
