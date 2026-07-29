@@ -110,7 +110,7 @@ function reconcile(res: api.SyncResponse) {
     const byId = new Map(list.map((n) => [n.id, n]))
     for (const n of res.changes.notes) {
       const existing = byId.get(n.id)
-      byId.set(n.id, { ...n, items: existing?.items ?? [] })
+      byId.set(n.id, { ...n, items: existing?.items ?? [], labelIds: existing?.labelIds ?? [] })
     }
     for (const it of res.changes.items) {
       const note = byId.get(it.noteId)
