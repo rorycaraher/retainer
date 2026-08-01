@@ -365,16 +365,24 @@ export function stripLabelFromAllNotes(labelId: string) {
   allNotes.update((all) => all.map((n) => (n.labelIds.includes(labelId) ? { ...n, labelIds: n.labelIds.filter((id) => id !== labelId) } : n)))
 }
 
-export function reorderItem(note: Note, draggedId: string, targetIndex: number) {
-  const dragged = note.items.find((it) => it.id === draggedId)
+// reorderItem takes the CALLER's already-filtered, already-sorted view list
+// (e.g. the unchecked or completed items of a checklist) — dragging only
+// ever reorders within one such group, same convention as
+// reorderNote/reorderArchivedNote above. Checked and unchecked items can be
+// interleaved by position, so neighbors must come from that same filtered
+// list, not the note's full (unfiltered) items.
+export function reorderItem(note: Note, list: ChecklistItem[], draggedId: string, targetIndex: number) {
+  const dragged = list.find((it) => it.id === draggedId)
   if (!dragged) return
-  const rest = note.items.filter((it) => it.id !== draggedId)
+  const rest = list.filter((it) => it.id !== draggedId)
   const index = Math.max(0, Math.min(targetIndex, rest.length))
   const before = rest[index - 1] // lower position (items are ASC-sorted)
   const after = rest[index]
   const position = keyBetween(before?.position ?? '', after?.position ?? '')
-  const updated = { ...dragged, position }
-  rest.splice(index, 0, updated)
-  allNotes.update((list) => list.map((n) => (n.id === note.id ? { ...n, items: rest } : n)))
+  allNotes.update((all) =>
+    all.map((n) =>
+      n.id !== note.id ? n : { ...n, items: sortItems(n.items.map((it) => (it.id === draggedId ? { ...it, position } : it))) },
+    ),
+  )
   mutateItem(draggedId, note.id, 'position', position)
 }

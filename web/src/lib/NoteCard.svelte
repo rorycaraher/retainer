@@ -18,9 +18,15 @@
   let itemDragOverIndex: number | null = null
   let showLabelPicker = false
   let showColorPicker = false
+  let showCompleted = false
 
   $: attachedLabels = $labels.filter((l) => note.labelIds.includes(l.id))
   $: cardBg = noteColorVar(note.color)
+  // note.items is kept sorted by position, but checked/unchecked items can be
+  // interleaved within it — split here for display, completed items tucked
+  // under a collapsible section instead of interspersed with active ones.
+  $: uncheckedItems = note.items.filter((it) => !it.checked)
+  $: checkedItems = note.items.filter((it) => it.checked)
 
   // Runs once when the title input is created — focuses it if this note was
   // just created (see stores/notes.ts justCreatedId), so a brand-new note
@@ -85,7 +91,7 @@
 
   function onItemDrop(e: DragEvent, index: number) {
     e.preventDefault()
-    if (draggedItemId) reorderItem(note, draggedItemId, index)
+    if (draggedItemId) reorderItem(note, uncheckedItems, draggedItemId, index)
     draggedItemId = null
     itemDragOverIndex = null
   }
@@ -144,7 +150,7 @@
     <textarea placeholder="Note" bind:value={body} on:blur={saveBody}></textarea>
   {:else}
     <ul class="items">
-      {#each note.items as item, i (item.id)}
+      {#each uncheckedItems as item, i (item.id)}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <li
           class:drag-over={itemDragOverIndex === i && draggedItemId !== item.id}
@@ -166,6 +172,31 @@
       {/each}
     </ul>
     <button class="add-item" on:click={() => addItem(note)}>+ Add item</button>
+
+    {#if checkedItems.length > 0}
+      <div class="completed-section">
+        <button class="completed-toggle" on:click={() => (showCompleted = !showCompleted)}>
+          <span class="chevron" class:open={showCompleted}>▸</span>
+          Completed ({checkedItems.length})
+        </button>
+        {#if showCompleted}
+          <ul class="items completed-items">
+            {#each checkedItems as item (item.id)}
+              <li>
+                <input type="checkbox" checked={item.checked} on:change={(e) => itemChecked(item, e.currentTarget.checked)} />
+                <input
+                  class="item-text checked"
+                  value={item.text}
+                  on:blur={(e) => itemText(item, e.currentTarget.value)}
+                  on:keydown={(e) => onItemKeydown(e, item)}
+                />
+                <button class="remove" on:click={() => removeItem(note, item)}>&times;</button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    {/if}
   {/if}
 
   <div class="footer">
@@ -257,6 +288,35 @@
     background: transparent;
     cursor: pointer;
     opacity: 0.7;
+  }
+  .completed-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .completed-toggle {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text);
+    opacity: 0.7;
+    font-size: 0.85rem;
+    padding: 0;
+  }
+  .chevron {
+    display: inline-block;
+    transition: transform 0.1s ease;
+  }
+  .chevron.open {
+    transform: rotate(90deg);
+  }
+  .completed-items .item-text.checked {
+    text-decoration: line-through;
+    opacity: 0.6;
   }
   .footer {
     display: flex;
