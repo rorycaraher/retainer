@@ -90,7 +90,7 @@
     {:else if view === 'trash'}
       <div class="grid">
         {#each $trashedNotes as note (note.id)}
-          <TrashCard {note} />
+          <div class="card-slot"><TrashCard {note} /></div>
         {/each}
       </div>
     {:else}
