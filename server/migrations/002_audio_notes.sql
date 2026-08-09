@@ -1,7 +1,8 @@
 -- Adds the Audio Note kind (docs/adr/0005): a single immutable recording
 -- stored as a BLOB alongside its MIME type and duration. SQLite can't widen
 -- an existing CHECK constraint in place, so the notes table is rebuilt.
-PRAGMA defer_foreign_keys = ON;
+-- (foreign_keys enforcement is turned off around this whole migration by
+-- server/internal/db.migrate — see the comment there for why.)
 
 CREATE TABLE notes_new (
   id TEXT PRIMARY KEY,
