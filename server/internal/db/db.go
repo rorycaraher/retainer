@@ -113,6 +113,20 @@ func migrate(db *sql.DB) error {
 		if err != nil {
 			return err
 		}
+
+		// Some migrations (e.g. 002, which rebuilds notes to widen its kind
+		// CHECK constraint — SQLite has no ALTER TABLE for that) DROP and
+		// recreate a table that others reference via FOREIGN KEY. SQLite's
+		// deferred-FK bookkeeping doesn't reconcile a drop-and-recreate under
+		// the same name, so foreign_keys enforcement must be off at the
+		// connection level for the whole migration, not just deferred — and
+		// that pragma is a no-op inside a transaction, so it's set here,
+		// before BEGIN, relying on the single persistent connection
+		// (SetMaxOpenConns(1) above) to make it stick across these calls.
+		if _, err := db.Exec(`PRAGMA foreign_keys = OFF`); err != nil {
+			return fmt.Errorf("disable foreign_keys for %s: %w", m.name, err)
+		}
+
 		tx, err := db.Begin()
 		if err != nil {
 			return err
@@ -130,6 +144,24 @@ func migrate(db *sql.DB) error {
 		}
 		if err := tx.Commit(); err != nil {
 			return fmt.Errorf("commit %s: %w", m.name, err)
+		}
+
+		// foreign_key_check returns one row per violation (it's a query, not
+		// an exec) — run it now, with enforcement still off, so a rebuilt
+		// table that came out inconsistent fails migration loudly instead of
+		// silently re-enabling enforcement over already-broken data.
+		rows, err := db.Query(`PRAGMA foreign_key_check`)
+		if err != nil {
+			return fmt.Errorf("foreign_key_check after %s: %w", m.name, err)
+		}
+		hasViolation := rows.Next()
+		rows.Close()
+		if hasViolation {
+			return fmt.Errorf("foreign_key_check after %s found violations", m.name)
+		}
+
+		if _, err := db.Exec(`PRAGMA foreign_keys = ON`); err != nil {
+			return fmt.Errorf("re-enable foreign_keys after %s: %w", m.name, err)
 		}
 	}
 	return nil
