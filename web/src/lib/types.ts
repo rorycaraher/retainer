@@ -1,4 +1,4 @@
-export type NoteKind = 'text' | 'checklist'
+export type NoteKind = 'text' | 'checklist' | 'audio'
 
 export interface ChecklistItem {
   id: string
@@ -26,6 +26,8 @@ export interface Note {
   updatedAt: number
   items: ChecklistItem[]
   labelIds: string[]
+  audioMimeType?: string
+  audioDurationMs?: number
 }
 
 export interface Label {

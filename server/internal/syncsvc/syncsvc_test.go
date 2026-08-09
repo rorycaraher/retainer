@@ -247,3 +247,31 @@ func TestUnknownMutationEntityErrors(t *testing.T) {
 		t.Fatal("expected error for unknown mutation entity")
 	}
 }
+
+// Audio Notes are only ever created via POST /api/notes/audio (docs/adr/0005),
+// which writes a real blob alongside kind="audio" in one atomic insert. The
+// generic mutation path must refuse to set kind to "audio" itself — otherwise
+// a note could end up with kind="audio" and no recording at all.
+func TestKindMutationRejectsAudio(t *testing.T) {
+	sqlDB := openTestDB(t)
+	_, _, err := Apply(sqlDB, 0, []Mutation{
+		{Entity: "note", ID: "note-1", Field: "kind", Value: jv(t, "audio"), HLC: "00000000000000000001-0000000000-device-a"},
+	})
+	if err == nil {
+		t.Fatal("expected error setting kind to audio via generic mutation")
+	}
+
+	// Same guard applies to an existing note, not just note creation.
+	_, _, err = Apply(sqlDB, 0, []Mutation{
+		{Entity: "note", ID: "note-2", Field: "title", Value: jv(t, "Groceries"), HLC: "00000000000000000001-0000000000-device-a"},
+	})
+	if err != nil {
+		t.Fatalf("seed Apply: %v", err)
+	}
+	_, _, err = Apply(sqlDB, 0, []Mutation{
+		{Entity: "note", ID: "note-2", Field: "kind", Value: jv(t, "audio"), HLC: "00000000000000000002-0000000000-device-a"},
+	})
+	if err == nil {
+		t.Fatal("expected error converting an existing note's kind to audio via generic mutation")
+	}
+}

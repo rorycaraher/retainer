@@ -1,11 +1,13 @@
 // Package models holds the core domain types shared across services.
 package models
 
-// Note is either a Text Note (Body is used) or a Checklist (Items is used),
-// per CONTEXT.md — never both at once, but convertible between the two.
+// Note is a Text Note (Body used), a Checklist (Items used), or an Audio
+// Note (AudioMimeType/AudioDurationMs used), per CONTEXT.md — exactly one at
+// once. The recording itself isn't on this struct: it's fetched separately
+// via GET /api/notes/{id}/audio so list/sync payloads stay small.
 type Note struct {
 	ID              string          `json:"id"`
-	Kind            string          `json:"kind"` // "text" | "checklist"
+	Kind            string          `json:"kind"` // "text" | "checklist" | "audio"
 	Title           string          `json:"title"`
 	Body            string          `json:"body"`
 	Color           string          `json:"color"`
@@ -19,6 +21,8 @@ type Note struct {
 	UpdatedAt       int64           `json:"updatedAt"`
 	Items           []ChecklistItem `json:"items"`
 	LabelIDs        []string        `json:"labelIds"`
+	AudioMimeType   string          `json:"audioMimeType,omitempty"`
+	AudioDurationMs int64           `json:"audioDurationMs,omitempty"`
 }
 
 // ChecklistItem is a single line within a Checklist.

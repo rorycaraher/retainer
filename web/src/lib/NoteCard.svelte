@@ -4,6 +4,7 @@
   import { setNoteField, togglePinned, toggleArchived, trashNote, addItem, addItemAfter, setItemField, removeItem, reorderItem, attachLabel, detachLabel, justCreatedId, justCreatedItemId } from './stores/notes'
   import { labels } from './stores/labels'
   import { NOTE_COLORS, noteColorVar } from './colors'
+  import { audioUrl } from './api/rest'
 
   export let note: Note
   export let onDragStart: () => void = () => {}
@@ -148,6 +149,9 @@
 
   {#if note.kind === 'text'}
     <textarea placeholder="Note" bind:value={body} on:blur={saveBody}></textarea>
+  {:else if note.kind === 'audio'}
+    <!-- svelte-ignore a11y_media_has_caption -->
+    <audio controls preload="metadata" src={audioUrl(note.id)}></audio>
   {:else}
     <ul class="items">
       {#each uncheckedItems as item, i (item.id)}
@@ -251,6 +255,9 @@
     font-family: inherit;
     background: transparent;
     color: var(--text);
+  }
+  audio {
+    width: 100%;
   }
   .items {
     list-style: none;

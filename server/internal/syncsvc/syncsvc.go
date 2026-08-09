@@ -137,6 +137,18 @@ func applyNoteMutation(tx *sql.Tx, m Mutation) error {
 	if m.ID == "" {
 		return fmt.Errorf("note mutation missing id")
 	}
+	// Audio Notes are created via the dedicated POST /api/notes/audio upload
+	// (docs/adr/0005) so the row always has a real blob to go with kind
+	// "audio" — never through this generic field-mutation path.
+	if m.Field == "kind" {
+		v, err := decodeString(m.Value)
+		if err != nil {
+			return err
+		}
+		if v == "audio" {
+			return fmt.Errorf("audio notes can only be created via POST /api/notes/audio")
+		}
+	}
 
 	var fieldClocksJSON string
 	err := tx.QueryRow(`SELECT field_clocks FROM notes WHERE id = ?`, m.ID).Scan(&fieldClocksJSON)
@@ -461,7 +473,7 @@ func loadChanges(tx *sql.Tx, sinceSeq int64) (Changes, error) {
 }
 
 func loadChangedNotes(tx *sql.Tx, sinceSeq int64) ([]*models.Note, error) {
-	rows, err := tx.Query(`SELECT id, kind, title, body, color, pinned, archived, trashed_at, position, archive_position, server_seq, created_at, updated_at
+	rows, err := tx.Query(`SELECT id, kind, title, body, color, pinned, archived, trashed_at, position, archive_position, server_seq, created_at, updated_at, audio_mime_type, audio_duration_ms
 		FROM notes WHERE server_seq > ? ORDER BY server_seq ASC`, sinceSeq)
 	if err != nil {
 		return nil, err
@@ -472,7 +484,7 @@ func loadChangedNotes(tx *sql.Tx, sinceSeq int64) ([]*models.Note, error) {
 	for rows.Next() {
 		n := &models.Note{Items: []models.ChecklistItem{}, LabelIDs: []string{}}
 		if err := rows.Scan(&n.ID, &n.Kind, &n.Title, &n.Body, &n.Color, &n.Pinned, &n.Archived, &n.TrashedAt,
-			&n.Position, &n.ArchivePosition, &n.ServerSeq, &n.CreatedAt, &n.UpdatedAt); err != nil {
+			&n.Position, &n.ArchivePosition, &n.ServerSeq, &n.CreatedAt, &n.UpdatedAt, &n.AudioMimeType, &n.AudioDurationMs); err != nil {
 			return nil, err
 		}
 		notes = append(notes, n)

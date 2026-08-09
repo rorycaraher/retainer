@@ -2,6 +2,7 @@
   import type { Note } from './types'
   import { restoreNote, purgeNoteForever } from './stores/notes'
   import { noteColorVar } from './colors'
+  import { audioUrl } from './api/rest'
 
   export let note: Note
 
@@ -22,6 +23,9 @@
   <div class="title">{note.title || '(untitled)'}</div>
   {#if note.kind === 'text'}
     <p class="body">{note.body}</p>
+  {:else if note.kind === 'audio'}
+    <!-- svelte-ignore a11y_media_has_caption -->
+    <audio controls preload="metadata" src={audioUrl(note.id)}></audio>
   {:else}
     <ul class="items">
       {#each note.items as item (item.id)}
@@ -56,6 +60,9 @@
   .body {
     margin: 0;
     white-space: pre-wrap;
+  }
+  audio {
+    width: 100%;
   }
   .items {
     list-style: none;

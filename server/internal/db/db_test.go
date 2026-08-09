@@ -18,8 +18,8 @@ func TestOpenAppliesMigrations(t *testing.T) {
 	if err := sqlDB.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&count); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if count != 1 {
-		t.Fatalf("expected 1 applied migration, got %d", count)
+	if count != 2 {
+		t.Fatalf("expected 2 applied migrations, got %d", count)
 	}
 
 	// notes table should exist and be empty.
@@ -51,7 +51,7 @@ func TestOpenIsIdempotent(t *testing.T) {
 	if err := db2.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&count); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if count != 1 {
+	if count != 2 {
 		t.Fatalf("expected migrations to be applied exactly once, got %d rows", count)
 	}
 }
