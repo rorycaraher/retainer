@@ -58,6 +58,38 @@ export function purgeNote(id: string): Promise<void> {
   return request(`/api/notes/${id}/purge`, { method: 'DELETE' })
 }
 
+// createAudioNote is the dedicated, one-shot creation path for Audio Notes
+// (docs/adr/0005) — deliberately outside the generic sync mutation batch,
+// since the recording is immutable from the moment it's saved. Uses
+// multipart/form-data (not the JSON `request` helper) to carry the blob.
+export async function createAudioNote(opts: {
+  id: string
+  title: string
+  position: string
+  durationMs: number
+  blob: Blob
+}): Promise<Note> {
+  const form = new FormData()
+  form.append('id', opts.id)
+  form.append('title', opts.title)
+  form.append('position', opts.position)
+  form.append('durationMs', String(Math.round(opts.durationMs)))
+  form.append('audio', opts.blob, 'recording')
+
+  const res = await fetch('/api/notes/audio', { method: 'POST', body: form })
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`POST /api/notes/audio failed: ${res.status} ${body}`)
+  }
+  return res.json() as Promise<Note>
+}
+
+// audioUrl is the src for a Note's recording — same-origin, so the browser
+// attaches the session cookie automatically.
+export function audioUrl(noteId: string): string {
+  return `/api/notes/${noteId}/audio`
+}
+
 export function searchNotes(q: string): Promise<{ notes: Note[] }> {
   return request(`/api/notes/search?q=${encodeURIComponent(q)}`)
 }

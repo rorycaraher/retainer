@@ -21,6 +21,7 @@
   import TrashCard from './lib/TrashCard.svelte'
   import LabelsView from './lib/LabelsView.svelte'
   import Login from './lib/Login.svelte'
+  import AudioRecorder from './lib/AudioRecorder.svelte'
 
   let view: 'main' | 'archive' | 'trash' | 'labels' = 'main'
 
@@ -76,6 +77,7 @@
         <div class="composer">
           <button on:click={() => addTextNote('', '')}>Add note</button>
           <button on:click={() => addChecklist('')}>Add checklist</button>
+          <AudioRecorder />
         </div>
 
         {#if $pinnedNotes.length}

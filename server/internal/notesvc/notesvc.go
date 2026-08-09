@@ -14,7 +14,7 @@ import (
 // the same way it reconciles incremental /api/sync responses), with their
 // Checklist Items.
 func List(db *sql.DB) ([]*models.Note, error) {
-	rows, err := db.Query(`SELECT id, kind, title, body, color, pinned, archived, trashed_at, position, archive_position, server_seq, created_at, updated_at
+	rows, err := db.Query(`SELECT id, kind, title, body, color, pinned, archived, trashed_at, position, archive_position, server_seq, created_at, updated_at, audio_mime_type, audio_duration_ms
 		FROM notes ORDER BY position DESC`)
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func List(db *sql.DB) ([]*models.Note, error) {
 	for rows.Next() {
 		n := &models.Note{}
 		if err := rows.Scan(&n.ID, &n.Kind, &n.Title, &n.Body, &n.Color, &n.Pinned, &n.Archived, &n.TrashedAt,
-			&n.Position, &n.ArchivePosition, &n.ServerSeq, &n.CreatedAt, &n.UpdatedAt); err != nil {
+			&n.Position, &n.ArchivePosition, &n.ServerSeq, &n.CreatedAt, &n.UpdatedAt, &n.AudioMimeType, &n.AudioDurationMs); err != nil {
 			return nil, err
 		}
 		n.Items = []models.ChecklistItem{}
@@ -91,10 +91,10 @@ func itemsForNote(db *sql.DB, noteID string) ([]models.ChecklistItem, error) {
 // Get returns a single Note by id, or sql.ErrNoRows if it doesn't exist.
 func Get(db *sql.DB, id string) (*models.Note, error) {
 	n := &models.Note{}
-	err := db.QueryRow(`SELECT id, kind, title, body, color, pinned, archived, trashed_at, position, archive_position, server_seq, created_at, updated_at
+	err := db.QueryRow(`SELECT id, kind, title, body, color, pinned, archived, trashed_at, position, archive_position, server_seq, created_at, updated_at, audio_mime_type, audio_duration_ms
 		FROM notes WHERE id = ?`, id).
 		Scan(&n.ID, &n.Kind, &n.Title, &n.Body, &n.Color, &n.Pinned, &n.Archived, &n.TrashedAt,
-			&n.Position, &n.ArchivePosition, &n.ServerSeq, &n.CreatedAt, &n.UpdatedAt)
+			&n.Position, &n.ArchivePosition, &n.ServerSeq, &n.CreatedAt, &n.UpdatedAt, &n.AudioMimeType, &n.AudioDurationMs)
 	if err != nil {
 		return nil, err
 	}

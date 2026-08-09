@@ -199,6 +199,25 @@ export async function addChecklist(title: string) {
   mutateNote(id, 'position', position)
 }
 
+function defaultAudioTitle(): string {
+  const stamp = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  return `Voice note — ${stamp}`
+}
+
+// addAudioNote is "record-then-create" (CONTEXT.md / docs/adr/0005): the
+// recording already exists as a finished Blob before this is called (no
+// empty/in-progress Note is ever created), so it's a single one-shot upload
+// rather than the optimistic-insert-then-mutate pattern the other kinds use.
+export async function addAudioNote(blob: Blob, durationMs: number) {
+  const id = crypto.randomUUID()
+  const topPosition = get(mainNotes)[0]?.position ?? ''
+  const position = keyBetween(topPosition, '') // new notes go to the top
+  const title = defaultAudioTitle()
+
+  const created = await api.createAudioNote({ id, title, position, durationMs, blob })
+  allNotes.update((list) => [created, ...list])
+}
+
 // setNoteField covers plain content edits. It always bundles trashedAt:null
 // at the same HLC as the edit — the "edit implicitly revives if newer"
 // convention: if this edit genuinely postdates a concurrent trash from

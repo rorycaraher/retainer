@@ -5,7 +5,7 @@ A private, self-hosted notes and checklists app, synced instantly across a web a
 ## Language
 
 **Note**:
-The top-level object a user creates. At any point in time, a Note is exactly one of two kinds — a Text Note or a Checklist — never both at once, but it can be converted between kinds later without losing its identity (text splits into items on newlines when converting to a Checklist; items join back into lines when converting to a Text Note).
+The top-level object a user creates. At any point in time, a Note is exactly one of three kinds — a Text Note, a Checklist, or an Audio Note — never more than one at once. Text Notes and Checklists can be converted between each other without losing identity (text splits into items on newlines when converting to a Checklist; items join back into lines when converting to a Text Note); Audio Notes cannot be converted to or from either, since there's no lossless mapping between a recording and text.
 _Avoid_: Item (too generic — see Checklist Item), Memo
 
 **Checklist**:
@@ -15,6 +15,10 @@ _Avoid_: List, Task list (implies a to-do app, which this is not)
 **Checklist Item**:
 A single line within a Checklist: text plus a checked/unchecked state.
 _Avoid_: Task, To-do
+
+**Audio Note**:
+A Note whose content is a single voice recording, capped at 5 minutes. Immutable once saved — re-recording means deleting the Audio Note and creating a new one, not editing the existing one in place. Has no transcript and cannot be converted to or from a Text Note or Checklist.
+_Avoid_: Voice note (fine casually, but "Audio Note" is the canonical term), Recording (too generic — could mean the underlying audio file rather than the Note)
 
 **Pinned**:
 A Note state that keeps it at the top of the main list, above unpinned Notes.

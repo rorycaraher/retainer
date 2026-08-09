@@ -25,6 +25,8 @@ func NewRouter(db *sql.DB, staticDir string, hub *wsserver.Hub) http.Handler {
 	mux.Handle("GET /api/notes/search", requireAuth(db, handleSearchNotes(db)))
 	mux.Handle("POST /api/sync", requireAuth(db, handleSync(db, hub)))
 	mux.Handle("DELETE /api/notes/{id}/purge", requireAuth(db, handlePurgeNote(db, hub)))
+	mux.Handle("POST /api/notes/audio", requireAuth(db, handleCreateAudioNote(db, hub)))
+	mux.Handle("GET /api/notes/{id}/audio", requireAuth(db, handleGetAudio(db)))
 	mux.Handle("GET /ws", requireAuth(db, handleWS(hub)))
 
 	mux.Handle("GET /api/labels", requireAuth(db, handleListLabels(db)))
