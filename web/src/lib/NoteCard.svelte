@@ -96,6 +96,18 @@
     draggedItemId = null
     itemDragOverIndex = null
   }
+
+  // Grows the textarea to fit its content so the whole note is visible in
+  // the card instead of scrolling internally; re-measures whenever the
+  // bound text changes (typing, or an external update to note.body).
+  function resizeToFit(node: HTMLTextAreaElement) {
+    node.style.height = 'auto'
+    node.style.height = node.scrollHeight + 'px'
+  }
+  function autogrow(node: HTMLTextAreaElement, value: string) {
+    resizeToFit(node)
+    return { update: () => resizeToFit(node) }
+  }
 </script>
 
 <div class="card" style="background: {cardBg}">
@@ -148,7 +160,7 @@
   </div>
 
   {#if note.kind === 'text'}
-    <textarea placeholder="Note" bind:value={body} on:blur={saveBody}></textarea>
+    <textarea placeholder="Note" bind:value={body} on:blur={saveBody} on:input={(e) => resizeToFit(e.currentTarget)} use:autogrow={body}></textarea>
   {:else if note.kind === 'audio'}
     <!-- svelte-ignore a11y_media_has_caption -->
     <audio controls preload="metadata" src={audioUrl(note.id)}></audio>
@@ -250,7 +262,8 @@
   }
   textarea {
     border: none;
-    resize: vertical;
+    resize: none;
+    overflow: hidden;
     min-height: 4rem;
     font-family: inherit;
     background: transparent;
