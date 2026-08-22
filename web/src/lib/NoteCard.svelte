@@ -10,10 +10,19 @@
   export let onDragStart: () => void = () => {}
   export let view: 'main' | 'archive' = 'main'
 
+  // title/body only resync from `note` while the field isn't focused: every
+  // allNotes update (even one from an unrelated note's sync/reconcile — e.g.
+  // the app's own "changed" WS self-echo, which fires after every edit)
+  // rebuilds the derived note lists and re-passes `note` as a prop to every
+  // mounted NoteCard, not just the one that actually changed. Without this
+  // guard, that resync clobbers whatever the user is mid-typing here with
+  // the last-saved value before they've had a chance to blur and save it.
   let title = note.title
   let body = note.body
-  $: title = note.title
-  $: body = note.body
+  let titleFocused = false
+  let bodyFocused = false
+  $: if (!titleFocused) title = note.title
+  $: if (!bodyFocused) body = note.body
 
   let draggedItemId: string | null = null
   let itemDragOverIndex: number | null = null
@@ -53,10 +62,12 @@
   }
 
   function saveTitle() {
+    titleFocused = false
     if (title !== note.title) setNoteField(note, 'title', title)
   }
 
   function saveBody() {
+    bodyFocused = false
     if (body !== note.body) setNoteField(note, 'body', body)
   }
 
@@ -113,7 +124,7 @@
 <div class="card" style="background: {cardBg}">
   <div class="card-head">
     <span class="drag-handle" role="button" tabindex="0" draggable="true" on:dragstart={onDragStart} title="Drag to reorder">⠿</span>
-    <input class="title" placeholder="Title" bind:value={title} on:blur={saveTitle} use:autofocusIfNew />
+    <input class="title" placeholder="Title" bind:value={title} on:focus={() => (titleFocused = true)} on:blur={saveTitle} use:autofocusIfNew />
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="color-picker-wrap">
       <button class="icon-btn" on:click={() => (showColorPicker = !showColorPicker)} title="Change color">🎨</button>
@@ -160,7 +171,7 @@
   </div>
 
   {#if note.kind === 'text'}
-    <textarea placeholder="Note" bind:value={body} on:blur={saveBody} on:input={(e) => resizeToFit(e.currentTarget)} use:autogrow={body}></textarea>
+    <textarea placeholder="Note" bind:value={body} on:focus={() => (bodyFocused = true)} on:blur={saveBody} on:input={(e) => resizeToFit(e.currentTarget)} use:autogrow={body}></textarea>
   {:else if note.kind === 'audio'}
     <!-- svelte-ignore a11y_media_has_caption -->
     <audio controls preload="metadata" src={audioUrl(note.id)}></audio>
