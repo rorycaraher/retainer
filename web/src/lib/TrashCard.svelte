@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Note } from './types'
-  import { restoreNote, purgeNoteForever } from './stores/notes'
+  import { restoreNote, purgeNoteForever, focusNote } from './stores/notes'
   import { noteColorVar } from './colors'
   import { audioUrl } from './api/rest'
 
@@ -16,16 +16,32 @@
       confirming = true
     }
   }
+
+  function open() {
+    focusNote(note.id, 'trash')
+  }
+
+  function openOnKey(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      open()
+    }
+  }
 </script>
 
-<!-- Trash is read-only (CONTEXT.md) — no editable inputs, just a display. -->
-<div class="card" style="background: {cardBg}">
+<!-- Trash is read-only (CONTEXT.md) — no editable inputs, just a display.
+Clicking the card opens a read-only Focused view (CONTEXT.md); Restore/Delete
+forever stop propagation so they act in place instead of also opening it. -->
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+<div class="card" style="background: {cardBg}" role="button" tabindex="0" on:click={open} on:keydown={openOnKey}>
   <div class="title">{note.title || '(untitled)'}</div>
   {#if note.kind === 'text'}
     <p class="body">{note.body}</p>
   {:else if note.kind === 'audio'}
-    <!-- svelte-ignore a11y_media_has_caption -->
-    <audio controls preload="metadata" src={audioUrl(note.id)}></audio>
+    <!-- svelte-ignore a11y_no_static_element_interactions a11y_media_has_caption -->
+    <div on:click|stopPropagation>
+      <audio controls preload="metadata" src={audioUrl(note.id)}></audio>
+    </div>
   {:else}
     <ul class="items">
       {#each note.items as item (item.id)}
@@ -35,8 +51,8 @@
   {/if}
 
   <div class="footer">
-    <button on:click={() => restoreNote(note)}>Restore</button>
-    <button class:confirming on:click={confirmPurge} on:mouseleave={() => (confirming = false)}>
+    <button on:click|stopPropagation={() => restoreNote(note)}>Restore</button>
+    <button class:confirming on:click|stopPropagation={confirmPurge} on:mouseleave={() => (confirming = false)}>
       {confirming ? 'Click again to delete forever' : 'Delete forever'}
     </button>
   </div>
@@ -50,6 +66,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    cursor: pointer;
+    text-align: left;
     opacity: 0.8;
     color: var(--text);
   }

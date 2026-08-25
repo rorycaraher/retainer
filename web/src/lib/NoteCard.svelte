@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { get } from 'svelte/store'
   import type { ChecklistItem, Note } from './types'
-  import { setNoteField, togglePinned, toggleArchived, trashNote, addItem, addItemAfter, setItemField, removeItem, reorderItem, attachLabel, detachLabel, justCreatedId, justCreatedItemId } from './stores/notes'
+  import { focusNote, togglePinned, toggleArchived, trashNote, setNoteField, setItemField, removeItem, reorderItem, attachLabel, detachLabel } from './stores/notes'
   import { labels } from './stores/labels'
   import { NOTE_COLORS, noteColorVar } from './colors'
   import { audioUrl } from './api/rest'
@@ -9,20 +8,6 @@
   export let note: Note
   export let onDragStart: () => void = () => {}
   export let view: 'main' | 'archive' = 'main'
-
-  // title/body only resync from `note` while the field isn't focused: every
-  // allNotes update (even one from an unrelated note's sync/reconcile — e.g.
-  // the app's own "changed" WS self-echo, which fires after every edit)
-  // rebuilds the derived note lists and re-passes `note` as a prop to every
-  // mounted NoteCard, not just the one that actually changed. Without this
-  // guard, that resync clobbers whatever the user is mid-typing here with
-  // the last-saved value before they've had a chance to blur and save it.
-  let title = note.title
-  let body = note.body
-  let titleFocused = false
-  let bodyFocused = false
-  $: if (!titleFocused) title = note.title
-  $: if (!bodyFocused) body = note.body
 
   let draggedItemId: string | null = null
   let itemDragOverIndex: number | null = null
@@ -38,16 +23,6 @@
   $: uncheckedItems = note.items.filter((it) => !it.checked)
   $: checkedItems = note.items.filter((it) => it.checked)
 
-  // Runs once when the title input is created — focuses it if this note was
-  // just created (see stores/notes.ts justCreatedId), so a brand-new note
-  // starts ready to type into instead of requiring an extra click.
-  function autofocusIfNew(node: HTMLInputElement) {
-    if (get(justCreatedId) === note.id) {
-      node.focus()
-      justCreatedId.set(null)
-    }
-  }
-
   function toggleLabel(labelId: string) {
     if (note.labelIds.includes(labelId)) {
       detachLabel(note, labelId)
@@ -61,39 +36,8 @@
     showColorPicker = false
   }
 
-  function saveTitle() {
-    titleFocused = false
-    if (title !== note.title) setNoteField(note, 'title', title)
-  }
-
-  function saveBody() {
-    bodyFocused = false
-    if (body !== note.body) setNoteField(note, 'body', body)
-  }
-
-  function itemText(item: ChecklistItem, value: string) {
-    setItemField(note, item, 'text', value)
-  }
-
   function itemChecked(item: ChecklistItem, value: boolean) {
     setItemField(note, item, 'checked', value)
-  }
-
-  // Enter in an item's text field commits it and continues the list right
-  // there, like a normal text/checklist editor — not appended at the bottom.
-  function onItemKeydown(e: KeyboardEvent, item: ChecklistItem) {
-    if (e.key !== 'Enter') return
-    e.preventDefault()
-    const value = (e.currentTarget as HTMLInputElement).value
-    if (value !== item.text) itemText(item, value)
-    addItemAfter(note, item)
-  }
-
-  function autofocusIfNewItem(node: HTMLInputElement, itemId: string) {
-    if (get(justCreatedItemId) === itemId) {
-      node.focus()
-      justCreatedItemId.set(null)
-    }
   }
 
   function onItemDragOver(e: DragEvent, index: number) {
@@ -108,25 +52,28 @@
     itemDragOverIndex = null
   }
 
-  // Grows the textarea to fit its content so the whole note is visible in
-  // the card instead of scrolling internally; re-measures whenever the
-  // bound text changes (typing, or an external update to note.body).
-  function resizeToFit(node: HTMLTextAreaElement) {
-    node.style.height = 'auto'
-    node.style.height = node.scrollHeight + 'px'
+  function open() {
+    focusNote(note.id, view)
   }
-  function autogrow(node: HTMLTextAreaElement, value: string) {
-    resizeToFit(node)
-    return { update: () => resizeToFit(node) }
+
+  function openOnKey(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      open()
+    }
   }
 </script>
 
-<div class="card" style="background: {cardBg}">
+<!-- Card itself opens the note (Focused, CONTEXT.md) on click; every quick
+action below (pin/archive/trash/color/label/checkbox/reorder/audio) stops
+propagation so it acts in place instead of also opening the note. -->
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+<div class="card" style="background: {cardBg}" role="button" tabindex="0" on:click={open} on:keydown={openOnKey}>
   <div class="card-head">
-    <span class="drag-handle" role="button" tabindex="0" draggable="true" on:dragstart={onDragStart} title="Drag to reorder">⠿</span>
-    <input class="title" placeholder="Title" bind:value={title} on:focus={() => (titleFocused = true)} on:blur={saveTitle} use:autofocusIfNew />
+    <span class="drag-handle" role="button" tabindex="0" draggable="true" on:click|stopPropagation on:dragstart={onDragStart} title="Drag to reorder">⠿</span>
+    <div class="title">{note.title || '(untitled)'}</div>
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="color-picker-wrap">
+    <div class="color-picker-wrap" on:click|stopPropagation>
       <button class="icon-btn" on:click={() => (showColorPicker = !showColorPicker)} title="Change color">🎨</button>
       {#if showColorPicker}
         <ul class="color-picker" on:mouseleave={() => (showColorPicker = false)}>
@@ -148,10 +95,10 @@
 
   <div class="labels-row">
     {#each attachedLabels as label (label.id)}
-      <button class="chip" on:click={() => detachLabel(note, label.id)} title="Click to remove">{label.name} ×</button>
+      <button class="chip" on:click|stopPropagation={() => detachLabel(note, label.id)} title="Click to remove">{label.name} ×</button>
     {/each}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="label-picker-wrap">
+    <div class="label-picker-wrap" on:click|stopPropagation>
       <button class="add-label" on:click={() => (showLabelPicker = !showLabelPicker)}>+ Label</button>
       {#if showLabelPicker}
         <ul class="label-picker" on:mouseleave={() => (showLabelPicker = false)}>
@@ -171,10 +118,12 @@
   </div>
 
   {#if note.kind === 'text'}
-    <textarea placeholder="Note" bind:value={body} on:focus={() => (bodyFocused = true)} on:blur={saveBody} on:input={(e) => resizeToFit(e.currentTarget)} use:autogrow={body}></textarea>
+    <p class="body">{note.body}</p>
   {:else if note.kind === 'audio'}
-    <!-- svelte-ignore a11y_media_has_caption -->
-    <audio controls preload="metadata" src={audioUrl(note.id)}></audio>
+    <!-- svelte-ignore a11y_no_static_element_interactions a11y_media_has_caption -->
+    <div on:click|stopPropagation>
+      <audio controls preload="metadata" src={audioUrl(note.id)}></audio>
+    </div>
   {:else}
     <ul class="items">
       {#each uncheckedItems as item, i (item.id)}
@@ -185,24 +134,17 @@
           on:dragleave={() => { if (itemDragOverIndex === i) itemDragOverIndex = null }}
           on:drop={(e) => onItemDrop(e, i)}
         >
-          <span class="drag-handle small" role="button" tabindex="0" draggable="true" on:dragstart={() => (draggedItemId = item.id)} title="Drag to reorder">⠿</span>
-          <input type="checkbox" checked={item.checked} on:change={(e) => itemChecked(item, e.currentTarget.checked)} />
-          <input
-            class="item-text"
-            value={item.text}
-            on:blur={(e) => itemText(item, e.currentTarget.value)}
-            on:keydown={(e) => onItemKeydown(e, item)}
-            use:autofocusIfNewItem={item.id}
-          />
-          <button class="remove" on:click={() => removeItem(note, item)}>&times;</button>
+          <span class="drag-handle small" role="button" tabindex="0" draggable="true" on:click|stopPropagation on:dragstart={() => (draggedItemId = item.id)} title="Drag to reorder">⠿</span>
+          <input type="checkbox" checked={item.checked} on:click|stopPropagation on:change={(e) => itemChecked(item, e.currentTarget.checked)} />
+          <span class="item-text">{item.text || '(empty item)'}</span>
+          <button class="remove" on:click|stopPropagation={() => removeItem(note, item)}>&times;</button>
         </li>
       {/each}
     </ul>
-    <button class="add-item" on:click={() => addItem(note)}>+ Add item</button>
 
     {#if checkedItems.length > 0}
       <div class="completed-section">
-        <button class="completed-toggle" on:click={() => (showCompleted = !showCompleted)}>
+        <button class="completed-toggle" on:click|stopPropagation={() => (showCompleted = !showCompleted)}>
           <span class="chevron" class:open={showCompleted}>▸</span>
           Completed ({checkedItems.length})
         </button>
@@ -210,14 +152,9 @@
           <ul class="items completed-items">
             {#each checkedItems as item (item.id)}
               <li>
-                <input type="checkbox" checked={item.checked} on:change={(e) => itemChecked(item, e.currentTarget.checked)} />
-                <input
-                  class="item-text checked"
-                  value={item.text}
-                  on:blur={(e) => itemText(item, e.currentTarget.value)}
-                  on:keydown={(e) => onItemKeydown(e, item)}
-                />
-                <button class="remove" on:click={() => removeItem(note, item)}>&times;</button>
+                <input type="checkbox" checked={item.checked} on:click|stopPropagation on:change={(e) => itemChecked(item, e.currentTarget.checked)} />
+                <span class="item-text checked">{item.text || '(empty item)'}</span>
+                <button class="remove" on:click|stopPropagation={() => removeItem(note, item)}>&times;</button>
               </li>
             {/each}
           </ul>
@@ -228,12 +165,12 @@
 
   <div class="footer">
     {#if view === 'main'}
-      <button class:active={note.pinned} on:click={() => togglePinned(note)}>{note.pinned ? 'Unpin' : 'Pin'}</button>
-      <button on:click={() => toggleArchived(note)}>Archive</button>
+      <button class:active={note.pinned} on:click|stopPropagation={() => togglePinned(note)}>{note.pinned ? 'Unpin' : 'Pin'}</button>
+      <button on:click|stopPropagation={() => toggleArchived(note)}>Archive</button>
     {:else}
-      <button on:click={() => toggleArchived(note)}>Unarchive</button>
+      <button on:click|stopPropagation={() => toggleArchived(note)}>Unarchive</button>
     {/if}
-    <button on:click={() => trashNote(note)}>Trash</button>
+    <button on:click|stopPropagation={() => trashNote(note)}>Trash</button>
   </div>
 </div>
 
@@ -245,6 +182,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    cursor: pointer;
+    text-align: left;
   }
   .card-head {
     display: flex;
@@ -266,18 +205,12 @@
   .title {
     flex: 1;
     font-weight: 600;
-    border: none;
     font-size: 1rem;
-    background: transparent;
     color: var(--text-h);
   }
-  textarea {
-    border: none;
-    resize: none;
-    overflow: hidden;
-    min-height: 4rem;
-    font-family: inherit;
-    background: transparent;
+  .body {
+    margin: 0;
+    white-space: pre-wrap;
     color: var(--text);
   }
   audio {
@@ -303,22 +236,17 @@
   }
   .item-text {
     flex: 1;
-    border: none;
-    background: transparent;
     color: var(--text);
+  }
+  .completed-items .item-text.checked {
+    text-decoration: line-through;
+    opacity: 0.6;
   }
   .remove {
     border: none;
     background: transparent;
     cursor: pointer;
     color: var(--text);
-  }
-  .add-item {
-    align-self: flex-start;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    opacity: 0.7;
   }
   .completed-section {
     display: flex;
@@ -344,10 +272,6 @@
   }
   .chevron.open {
     transform: rotate(90deg);
-  }
-  .completed-items .item-text.checked {
-    text-decoration: line-through;
-    opacity: 0.6;
   }
   .footer {
     display: flex;

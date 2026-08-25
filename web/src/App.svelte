@@ -11,6 +11,8 @@
     unpinnedNotes,
     archivedNotes,
     trashedNotes,
+    focusedNote,
+    focusedNoteContext,
   } from './lib/stores/notes'
   import { isAuthed, checkAuth, logout } from './lib/stores/auth'
   import { loadLabels } from './lib/stores/labels'
@@ -19,6 +21,7 @@
   import NoteGrid from './lib/NoteGrid.svelte'
   import NoteCard from './lib/NoteCard.svelte'
   import TrashCard from './lib/TrashCard.svelte'
+  import FocusedNote from './lib/FocusedNote.svelte'
   import LabelsView from './lib/LabelsView.svelte'
   import Login from './lib/Login.svelte'
   import AudioRecorder from './lib/AudioRecorder.svelte'
@@ -99,6 +102,10 @@
       <LabelsView />
     {/if}
   </main>
+
+  {#if $focusedNote && $focusedNoteContext}
+    <FocusedNote note={$focusedNote} view={$focusedNoteContext.view} />
+  {/if}
 {/if}
 
 <style>

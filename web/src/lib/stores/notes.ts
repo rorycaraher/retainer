@@ -20,6 +20,27 @@ export const justCreatedId = writable<string | null>(null)
 // addItem/addItemAfter, so its text field can auto-focus.
 export const justCreatedItemId = writable<string | null>(null)
 
+// The Focused note (CONTEXT.md) — at most one Note is Focused at a time, and
+// only the Focused Note's title/body/item text are directly typeable. `view`
+// is a SNAPSHOT of which list the note was opened from, captured once at
+// focus time and never recomputed — FocusedNote compares this frozen value
+// against the note's live archived/trashedAt fields to detect when the note
+// has left that list (via its own buttons, or a concurrent sync update) and
+// should auto-close.
+export const focusedNoteContext = writable<{ id: string; view: 'main' | 'archive' | 'trash' } | null>(null)
+
+export function focusNote(id: string, view: 'main' | 'archive' | 'trash' = 'main') {
+  focusedNoteContext.set({ id, view })
+}
+
+export function unfocusNote() {
+  focusedNoteContext.set(null)
+}
+
+export const focusedNote = derived([allNotes, focusedNoteContext], ([all, ctx]) =>
+  ctx ? (all.find((n) => n.id === ctx.id) ?? null) : null,
+)
+
 function isInMain(n: Note): boolean {
   return !n.archived && !n.trashedAt
 }
@@ -165,6 +186,7 @@ export async function addTextNote(title: string, body: string) {
   }
   allNotes.update((list) => [optimistic, ...list])
   justCreatedId.set(id)
+  focusNote(id, 'main')
   mutateNote(id, 'kind', 'text')
   mutateNote(id, 'title', title)
   mutateNote(id, 'body', body)
@@ -194,6 +216,7 @@ export async function addChecklist(title: string) {
   }
   allNotes.update((list) => [optimistic, ...list])
   justCreatedId.set(id)
+  focusNote(id, 'main')
   mutateNote(id, 'kind', 'checklist')
   mutateNote(id, 'title', title)
   mutateNote(id, 'position', position)
