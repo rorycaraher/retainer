@@ -74,10 +74,12 @@ forever stop propagation so they act in place instead of also opening it. -->
   .title {
     font-weight: 600;
     color: var(--text-h);
+    overflow-wrap: anywhere;
   }
   .body {
     margin: 0;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   audio {
     width: 100%;
@@ -89,6 +91,9 @@ forever stop propagation so they act in place instead of also opening it. -->
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+  }
+  .items li {
+    overflow-wrap: anywhere;
   }
   .items li.checked {
     text-decoration: line-through;
