@@ -226,7 +226,7 @@
         <!-- svelte-ignore a11y_media_has_caption -->
         <audio controls preload="metadata" src={audioUrl(note.id)}></audio>
       {:else if readOnly}
-        <ul class="items">
+        <ul class="items readonly">
           {#each note.items as item (item.id)}
             <li class:checked={item.checked}>{item.text || '(empty item)'}</li>
           {/each}
@@ -342,11 +342,13 @@
   }
   .title {
     flex: 1;
+    min-width: 0;
     font-weight: 600;
     font-size: 1.1rem;
     border: none;
     background: transparent;
     color: var(--text-h);
+    overflow-wrap: anywhere;
   }
   .content {
     flex: 1;
@@ -362,10 +364,12 @@
     font-size: 1rem;
     background: transparent;
     color: var(--text);
+    overflow-wrap: anywhere;
   }
   .body {
     margin: 0;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
     color: var(--text);
   }
   audio {
@@ -392,6 +396,14 @@
   .items li.checked {
     text-decoration: line-through;
     opacity: 0.7;
+  }
+  /* The readOnly (Trash) rendering is plain text with no checkbox/handle/button
+     siblings to align — override the editable rows' flex layout so a long
+     unbroken word can actually shrink and wrap instead of hitting the
+     flex-item min-content floor. */
+  .items.readonly li {
+    display: block;
+    overflow-wrap: anywhere;
   }
   .drag-handle {
     cursor: grab;

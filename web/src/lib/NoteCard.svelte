@@ -204,13 +204,16 @@ propagation so it acts in place instead of also opening the note. -->
   }
   .title {
     flex: 1;
+    min-width: 0;
     font-weight: 600;
     font-size: 1rem;
     color: var(--text-h);
+    overflow-wrap: anywhere;
   }
   .body {
     margin: 0;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
     color: var(--text);
   }
   audio {
@@ -236,7 +239,9 @@ propagation so it acts in place instead of also opening the note. -->
   }
   .item-text {
     flex: 1;
+    min-width: 0;
     color: var(--text);
+    overflow-wrap: anywhere;
   }
   .completed-items .item-text.checked {
     text-decoration: line-through;
