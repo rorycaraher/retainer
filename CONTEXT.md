@@ -39,3 +39,7 @@ A background color assigned to a Note, chosen from a fixed palette.
 
 **Position**:
 A Note's place in the manually-ordered main list, user-controlled via drag-and-drop. Independent of Pinned/Archived/Trash (each of those views has its own ordering).
+
+**Focused**:
+A transient state on a Note, entered by clicking it (or by creating a new Note) and exited by closing it. At most one Note is Focused at any time. Only the Focused Note's title, body, and Checklist Item text can be edited by typing; all other Notes remain limited to non-text actions (Pin, Archive, Trash, Color, Label, checkbox toggle, item reorder) while another Note is Focused. Trashing or archiving the Focused Note un-Focuses it automatically.
+_Avoid_: Expanded, Open (describe how Focused is presented on screen, not the underlying exclusivity rule)
