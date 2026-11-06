@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import { get } from 'svelte/store'
   import type { ChecklistItem, Note } from './types'
   import {
@@ -57,6 +58,16 @@
   $: if (view === 'main' && (note.archived || note.trashedAt)) unfocusNote()
   $: if (view === 'archive' && (!note.archived || note.trashedAt)) unfocusNote()
   $: if (view === 'trash' && !note.trashedAt) unfocusNote()
+
+  // The page behind the overlay must not scroll (touch scroll chains to it
+  // once the panel hits its edge, which feels inverted on mobile).
+  onMount(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  })
 
   function autofocusIfNew(node: HTMLInputElement) {
     if (get(justCreatedId) === note.id) {
@@ -307,6 +318,7 @@
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 100;
+    overscroll-behavior: contain;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -322,6 +334,8 @@
     flex-direction: column;
     gap: 0.5rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
   }
   @media (max-width: 640px) {
     .backdrop {
@@ -330,6 +344,7 @@
     .panel {
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
       max-width: none;
       border: none;
       border-radius: 0;
